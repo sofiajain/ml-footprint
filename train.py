@@ -1,13 +1,17 @@
+"""Train ML models and track carbon emissions."""
 import time
 import mlflow
+import os
 from codecarbon import EmissionsTracker
 from sklearn.datasets import load_iris, load_wine, fetch_california_housing
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from lightgbm import LGBMClassifier, LGBMRegressor
-from sklearn.metrics import accuracy_score, f1_score, r2_score, mean_squared_error
+from sklearn.metrics import accuracy_score, f1_score, r2_score
 
+# Disable codecarbon online mode
+os.environ['CODECARBON_OFFLINE_MODE'] = 'true'
 
 def load_dataset(name):
     """Load dataset and return train/test split."""
@@ -31,8 +35,13 @@ def train_model(model, model_name, X_train, X_test, y_train, y_test, dataset_nam
     """Train model and track metrics + carbon."""
     print(f"  Training {model_name}...")
     
-    # Start carbon tracking
-    tracker = EmissionsTracker(project_name=f"{dataset_name}_{model_name}", log_level='error')
+    # Start carbon tracking (offline mode)
+    tracker = EmissionsTracker(
+        project_name=f"{dataset_name}_{model_name}",
+        log_level='error',
+        save_to_file=False,
+        tracking_mode="process"
+    )
     tracker.start()
     
     # Train
@@ -67,7 +76,7 @@ def train_model(model, model_name, X_train, X_test, y_train, y_test, dataset_nam
             mlflow.log_metric("f1_score", f1)
         mlflow.log_metric("training_time_sec", training_time)
         mlflow.log_metric("co2_kg", co2_kg)
-        mlflow.log_metric("energy_kwh", co2_kg / 0.5)  # Estimate
+        mlflow.log_metric("energy_kwh", co2_kg / 0.5)
     
     print(f"    ✓ {metric_name}: {metric_value:.3f} | CO2: {co2_kg:.6f} kg | Time: {training_time:.2f}s")
 
@@ -77,7 +86,6 @@ def main():
     mlflow.set_tracking_uri("file:./mlruns")
     mlflow.set_experiment("green_ai_comparison")
     
-    # Define experiments
     datasets = {
         'iris': 'classification',
         'wine': 'classification',
@@ -110,8 +118,7 @@ def main():
             train_model(model, model_name, X_train, X_test, y_train, y_test, dataset_name, task)
         print()
     
-    print("All experiments complete!")
-    print("Run dashboard: streamlit run app.py\n")
+    print("✅ All experiments complete!\n")
 
 
 if __name__ == "__main__":
