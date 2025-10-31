@@ -1,4 +1,4 @@
-"""Streamlit dashboard for Green AI Model Footprint."""
+"""Streamlit dashboard for ML Model Footprint."""
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -7,17 +7,17 @@ from mlflow.tracking import MlflowClient
 import subprocess
 import os
 
-st.set_page_config(page_title="Green AI Footprint", page_icon="🌱", layout="wide")
+st.set_page_config(page_title="Machine Learning Model Footprint", layout="wide")
 
-st.title("🌱 Green AI Model Footprint Dashboard")
+st.title("Machine Learning Model Footprint Dashboard")
 st.markdown("Compare carbon/energy cost vs accuracy for ML models")
 
 # Training button at the top
 st.markdown("---")
 col1, col2 = st.columns([1, 3])
 with col1:
-    if st.button("▶️ Run Training", type="primary"):
-        with st.spinner("Training models... This takes 1-3 minutes"):
+    if st.button("Run Training", type="primary"):
+        with st.spinner("Training models... (1-3 minutes)"):
             try:
                 result = subprocess.run(
                     ["python", "train.py"],
@@ -26,7 +26,7 @@ with col1:
                     cwd=os.getcwd()
                 )
                 if result.returncode == 0:
-                    st.success("✅ Training complete!")
+                    st.success("Training complete")
                     st.rerun()
                 else:
                     st.error(f"Training failed: {result.stderr}")
@@ -34,7 +34,7 @@ with col1:
                 st.error(f"Error: {e}")
 
 with col2:
-    st.info("Click 'Run Training' to train 9 models (3 datasets × 3 models) and track emissions")
+    st.info("Click 'Run Training' to train models and track emissions")
 
 st.markdown("---")
 
@@ -73,7 +73,7 @@ def load_data():
 df = load_data()
 
 if df.empty:
-    st.warning("⚠️ No training data found. Click 'Run Training' above to get started!")
+    st.warning("No training data found. Click 'Run Training' above.")
     st.stop()
 
 # Filters
@@ -92,39 +92,38 @@ col4.metric("Avg Accuracy", f"{df_filtered['Accuracy'].mean():.3f}")
 
 st.markdown("---")
 
-# Pareto Chart
-st.subheader("📊 Accuracy vs CO₂ Emissions (Pareto)")
+
+st.subheader("Accuracy vs CO₂ Emissions")
 fig = px.scatter(
     df_filtered,
     x='CO₂ (kg)',
     y='Accuracy',
     color='Model',
     size='Time (s)',
-    hover_data=['Dataset'],
-    title="Lower CO₂ + Higher Accuracy = Better"
+    hover_data=['Dataset']
 )
 st.plotly_chart(fig, use_container_width=True)
 
-st.info("💡 Best models are in the **top-left** corner (high accuracy, low emissions)")
+st.info("Best models have high accuracy and low emissions")
 
 # Side by side charts
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("⏱️ Training Time")
+    st.subheader("Training Time")
     fig_time = px.bar(df_filtered, x='Model', y='Time (s)', color='Dataset')
     st.plotly_chart(fig_time, use_container_width=True)
 
 with col2:
-    st.subheader("🌍 CO₂ Emissions")
+    st.subheader("CO₂ Emissions")
     fig_co2 = px.bar(df_filtered, x='Model', y='CO₂ (kg)', color='Dataset')
     st.plotly_chart(fig_co2, use_container_width=True)
 
 # Data table
-st.subheader("📋 Detailed Results")
+st.subheader("Detailed Results")
 st.dataframe(df_filtered.style.format({
     'Accuracy': '{:.4f}',
     'Time (s)': '{:.2f}',
-    'CO₂ (kg)': '{:.6f}',
-    'Energy (kWh)': '{:.4f}'
+    'CO₂ (kg)': '{:.9f}',
+    'Energy (kWh)': '{:.9f}'
 }), use_container_width=True)

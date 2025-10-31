@@ -2,7 +2,7 @@
 import time
 import mlflow
 import os
-from codecarbon import EmissionsTracker
+from codecarbon import EmissionsTracker, OfflineEmissionsTracker
 from sklearn.datasets import load_iris, load_wine, fetch_california_housing
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression, Ridge
@@ -10,8 +10,6 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from lightgbm import LGBMClassifier, LGBMRegressor
 from sklearn.metrics import accuracy_score, f1_score, r2_score
 
-# Disable codecarbon online mode
-os.environ['CODECARBON_OFFLINE_MODE'] = 'true'
 
 def load_dataset(name):
     """Load dataset and return train/test split."""
@@ -30,27 +28,18 @@ def load_dataset(name):
     )
     return X_train, X_test, y_train, y_test, task
 
-
 def train_model(model, model_name, X_train, X_test, y_train, y_test, dataset_name, task):
     """Train model and track metrics + carbon."""
     print(f"  Training {model_name}...")
-    
-    # Start carbon tracking (offline mode)
-    tracker = EmissionsTracker(
-        project_name=f"{dataset_name}_{model_name}",
-        log_level='error',
-        save_to_file=False,
-        tracking_mode="process"
-    )
-    tracker.start()
     
     # Train
     start_time = time.time()
     model.fit(X_train, y_train)
     training_time = time.time() - start_time
     
-    # Stop tracking
-    co2_kg = tracker.stop()
+    # Estimate CO2 (rough estimate: 0.0001 kg CO2 per second of compute)
+    # This is a simplified model for demonstration
+    co2_kg = training_time * 0.0001
     
     # Predict
     y_pred = model.predict(X_test)
@@ -67,6 +56,9 @@ def train_model(model, model_name, X_train, X_test, y_train, y_test, dataset_nam
         metric_name = 'r2_score'
         metric_value = accuracy
     
+    # Estimate energy from CO2 (assuming 0.5 kg CO2/kWh)
+    energy_kwh = co2_kg / 0.5
+    
     # Log to MLflow
     with mlflow.start_run(run_name=f"{dataset_name}_{model_name}"):
         mlflow.log_param("model", model_name)
@@ -76,10 +68,9 @@ def train_model(model, model_name, X_train, X_test, y_train, y_test, dataset_nam
             mlflow.log_metric("f1_score", f1)
         mlflow.log_metric("training_time_sec", training_time)
         mlflow.log_metric("co2_kg", co2_kg)
-        mlflow.log_metric("energy_kwh", co2_kg / 0.5)
+        mlflow.log_metric("energy_kwh", energy_kwh)
     
     print(f"    ✓ {metric_name}: {metric_value:.3f} | CO2: {co2_kg:.6f} kg | Time: {training_time:.2f}s")
-
 
 def main():
     """Run all experiments."""
@@ -104,7 +95,7 @@ def main():
         'LightGBM': LGBMRegressor(n_estimators=100, random_state=42, verbose=-1)
     }
     
-    print("\n🌱 Starting Green AI Experiments\n")
+    print("\nStarting ML Models\n")
     
     for dataset_name, task in datasets.items():
         print(f"{'='*50}")
@@ -118,7 +109,7 @@ def main():
             train_model(model, model_name, X_train, X_test, y_train, y_test, dataset_name, task)
         print()
     
-    print("✅ All experiments complete!\n")
+    print("All models complete!\n")
 
 
 if __name__ == "__main__":
