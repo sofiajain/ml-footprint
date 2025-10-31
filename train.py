@@ -1,4 +1,3 @@
-"""Train ML models and track carbon emissions."""
 import time
 import mlflow
 from codecarbon import EmissionsTracker
