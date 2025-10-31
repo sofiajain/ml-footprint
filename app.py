@@ -100,30 +100,5 @@ st.dataframe(df_filtered.style.format({
     'CO₂ (kg)': '{:.6f}',
     'Energy (kWh)': '{:.4f}'
 }), use_container_width=True)
-```
 
-## Step 5: Create `.gitignore`
-```
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.egg-info/
-.ipynb_checkpoints/
 
-# MLflow
-mlruns/
-
-# CodeCarbon
-emissions.csv
-*.log
-
-# Environment
-.env
-.venv/
-venv/
-env/
-
-# OS
-.DS_Store
-Thumbs.db
